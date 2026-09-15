@@ -3,29 +3,54 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Runner façon Subway — Soussballgames</title>
+<title>Runner — Soussballgames</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="back brand" href="../../index.html">← Soussballgames</a>
-      <div class="pill">🚧 En construction</div>
-    </header>
-    <div class="center-col">
-      <h1>Runner façon Subway Surfer</h1>
-      <p>Un personnage court en continu sur une route stylisée à l'infini. Votre corps pilote tout : aucun clavier.</p>
-      <ul class="mechanic-list">
-        <li><b>Saut</b> — un saut détecté (hanches qui remontent vite) fait sauter le personnage par-dessus un obstacle bas.</li>
-        <li><b>Accroupissement</b> — plier les jambes (hanches qui descendent) fait glisser le personnage sous un obstacle haut.</li>
-        <li><b>Gauche / droite</b> — se décaler latéralement change de voie parmi 3 couloirs, avec une transition fluide.</li>
-        <li><b>Décor</b> — route qui défile avec parallax, néons et particules pour une ambiance moderne et épurée.</li>
-        <li><b>Score</b> — distance parcourue + pièces ramassées en changeant de voie.</li>
-      </ul>
-      <p>Prochaine étape de développement — revenez bientôt.</p>
-      <a class="btn btn-primary" href="../../index.html">Retour à l'accueil</a>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Score <span id="scoreVal">0</span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="720" height="900"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Runner</h2>
+        <p>
+          Reculez-vous pour que votre buste et vos hanches soient visibles en entier.
+          Le personnage court tout seul : à vous de sauter, vous accroupir et vous
+          décaler à gauche ou à droite pour éviter les obstacles.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">⬆️ Sautez pour sauter</span>
+          <span class="hint-chip">⬇️ Accroupissez-vous pour glisser</span>
+          <span class="hint-chip">↔️ Déplacez-vous pour changer de voie</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>Perdu !</h2>
+        <p>Score final : <b id="finalScore">0</b> — meilleur score : <b id="bestScore">0</b></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script type="module" src="runner.js"></script>
 </body>
 </html>

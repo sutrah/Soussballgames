@@ -1,5 +1,6 @@
 import { PoseController, LM } from "../../assets/js/pose/PoseController.js";
 import { EdgeTrigger, Baseline, kneeLift, mid } from "../../assets/js/pose/gestures.js";
+import { drawSkeleton } from "../../assets/js/pose/skeleton.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -7,7 +8,6 @@ const W = canvas.width, H = canvas.height;
 
 const video = document.getElementById("video");
 const skeleton = document.getElementById("skeleton");
-const skelCtx = skeleton.getContext("2d");
 const camDot = document.getElementById("camDot");
 const camLabel = document.getElementById("camLabel");
 const scoreVal = document.getElementById("scoreVal");
@@ -41,7 +41,7 @@ pose.onStatus((status) => {
 
 let flapQueued = 0;
 pose.onFrame((lm) => {
-  drawSkeleton(lm);
+  drawSkeleton(skeleton, lm, LM, { highlight: [LM.L_KNEE, LM.R_KNEE] });
   if (!lm) return;
   const hip = mid(lm[LM.L_HIP], lm[LM.R_HIP]);
   const lift = kneeLift(lm, LM);
@@ -49,34 +49,6 @@ pose.onFrame((lm) => {
   liftSignal = lift - liftBaseline.value;
   if (stepTrigger.update(liftSignal)) flapQueued++;
 });
-
-function drawSkeleton(lm) {
-  skeleton.width = skeleton.clientWidth;
-  skeleton.height = skeleton.clientHeight;
-  skelCtx.clearRect(0, 0, skeleton.width, skeleton.height);
-  if (!lm) return;
-  const pairs = [
-    [LM.L_SHOULDER, LM.R_SHOULDER], [LM.L_SHOULDER, LM.L_HIP], [LM.R_SHOULDER, LM.R_HIP],
-    [LM.L_HIP, LM.R_HIP], [LM.L_HIP, LM.L_KNEE], [LM.R_HIP, LM.R_KNEE],
-    [LM.L_KNEE, LM.L_ANKLE], [LM.R_KNEE, LM.R_ANKLE],
-  ];
-  skelCtx.strokeStyle = "rgba(125,211,252,0.85)";
-  skelCtx.lineWidth = 3;
-  for (const [a, b] of pairs) {
-    const pa = lm[a], pb = lm[b];
-    skelCtx.beginPath();
-    skelCtx.moveTo(pa.x * skeleton.width, pa.y * skeleton.height);
-    skelCtx.lineTo(pb.x * skeleton.width, pb.y * skeleton.height);
-    skelCtx.stroke();
-  }
-  skelCtx.fillStyle = "#a78bfa";
-  for (const i of [LM.L_KNEE, LM.R_KNEE]) {
-    const p = lm[i];
-    skelCtx.beginPath();
-    skelCtx.arc(p.x * skeleton.width, p.y * skeleton.height, 5, 0, Math.PI * 2);
-    skelCtx.fill();
-  }
-}
 
 // ---------- État du jeu ----------
 const GRAVITY = 1800; // px/s^2
