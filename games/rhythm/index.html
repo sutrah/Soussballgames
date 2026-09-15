@@ -8,23 +8,50 @@
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="back brand" href="../../index.html">← Soussballgames</a>
-      <div class="pill">🚧 En construction</div>
-    </header>
-    <div class="center-col">
-      <h1>Rythme — touche du pied</h1>
-      <p>Des notes défilent de haut en bas sur plusieurs pistes, comme un Guitar Hero joué avec les pieds.</p>
-      <ul class="mechanic-list">
-        <li><b>Pistes</b> — 2 à 4 couloirs verticaux correspondant à des positions de pied (gauche, centre, droite...).</li>
-        <li><b>Détection</b> — une tape de pied (mouvement rapide vers le bas puis relâchement de la cheville) valide la note quand elle atteint la ligne de frappe.</li>
-        <li><b>Précision</b> — parfait / bien / raté selon l'écart de timing, avec combo et multiplicateur de score.</li>
-        <li><b>Style</b> — notes lumineuses, traînées de particules, ligne de frappe qui pulse au tempo.</li>
-      </ul>
-      <p>Prochaine étape de développement — revenez bientôt.</p>
-      <a class="btn btn-primary" href="../../index.html">Retour à l'accueil</a>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Score <span id="scoreVal">0</span> <span style="color:var(--text-2); font-weight:400; font-size:0.85rem">· combo <span id="comboVal">0</span></span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="720" height="900"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Rythme</h2>
+        <p>
+          Reculez-vous pour que vos deux pieds soient visibles. Les notes tombent
+          sur deux pistes : tapez du pied gauche pour la piste de gauche, du
+          pied droit pour la piste de droite, pile quand la note touche la ligne.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">🦶 Pied gauche → piste gauche</span>
+          <span class="hint-chip">🦶 Pied droit → piste droite</span>
+          <span class="hint-chip">🎯 Visez la ligne de frappe</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>Terminé !</h2>
+        <p>Score final : <b id="finalScore">0</b> — meilleur score : <b id="bestScore">0</b></p>
+        <p style="font-size:0.82rem">Meilleur combo : <b id="finalCombo">0</b></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script type="module" src="rhythm.js"></script>
 </body>
 </html>
