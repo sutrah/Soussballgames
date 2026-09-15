@@ -8,23 +8,49 @@
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="back brand" href="../../index.html">← Soussballgames</a>
-      <div class="pill">🚧 En construction</div>
-    </header>
-    <div class="center-col">
-      <h1>Escalade verticale</h1>
-      <p>La caméra suit vos mains pour recréer la sensation de grimper un mur, sans quitter votre chaise.</p>
-      <ul class="mechanic-list">
-        <li><b>Prises</b> — des prises apparaissent à l'écran à hauteur de main ; les atteindre et fermer la main (poignet qui s'arrête sur la prise) les "attrape".</li>
-        <li><b>Traction</b> — une fois la prise attrapée, tirer la main vers le bas fait monter tout le décor (le mur défile vers le bas), donnant l'illusion de grimper.</li>
-        <li><b>Alternance mains</b> — il faut alterner main gauche / main droite pour progresser, comme une vraie escalade.</li>
-        <li><b>Chute</b> — lâcher les deux mains trop longtemps sans prise proche fait redescendre légèrement (filet de sécurité).</li>
-      </ul>
-      <p>Prochaine étape de développement — revenez bientôt.</p>
-      <a class="btn btn-primary" href="../../index.html">Retour à l'accueil</a>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Hauteur <span id="scoreVal">0</span> m</div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="720" height="900"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Escalade</h2>
+        <p>
+          Reculez-vous pour que vos deux bras puissent bouger librement à l'écran.
+          Tendez la main vers une prise pour l'attraper, puis tirez la main vers
+          le bas pour grimper. Alternez les mains pour progresser sans vous arrêter.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">✋ Main proche d'une prise = attrapée</span>
+          <span class="hint-chip">⬇️ Tirez la main vers le bas pour monter</span>
+          <span class="hint-chip">🔁 Alternez gauche / droite</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>🏔️ Sommet atteint !</h2>
+        <p>Hauteur : <b id="finalScore">0</b> m — record : <b id="bestScore">0</b> m</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script type="module" src="climb.js"></script>
 </body>
 </html>
