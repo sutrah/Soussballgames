@@ -1,4 +1,5 @@
 import { PoseController, LM } from "../../assets/js/pose/PoseController.js";
+import { Baseline, EdgeTrigger, mid } from "../../assets/js/pose/gestures.js";
 import { drawSkeleton } from "../../assets/js/pose/skeleton.js";
 
 const canvas = document.getElementById("game");
@@ -21,8 +22,16 @@ const BEST_KEY = "climb-best";
 let best = Number(localStorage.getItem(BEST_KEY) || 0);
 bestScoreEl.textContent = best;
 
-// ---------- Détection des mains ----------
+// ---------- Détection des mains + petit saut d'appui (dyno) ----------
 let wristScreen = { left: null, right: null }; // positions écran {x,y} ou null si non détecté
+
+// Un léger saut (hanches qui remontent vite) élargit brièvement la zone
+// de préhension, comme un vrai "dyno" léger pour rattraper une prise un
+// peu loin — sans quoi certaines prises peuvent sembler hors d'atteinte.
+const hipBaseline = new Baseline(0.02);
+const jumpTrigger = new EdgeTrigger(0.02, 0.05, 350);
+const FREEZE_GESTURE = 0.07;
+let dynoBoost = 0;
 
 const pose = new PoseController({ video, mirror: true });
 pose.onStatus((status) => {
@@ -43,15 +52,28 @@ pose.onFrame((lm) => {
     left: { x: lm[LM.L_WRIST].x * W, y: lm[LM.L_WRIST].y * H },
     right: { x: lm[LM.R_WRIST].x * W, y: lm[LM.R_WRIST].y * H },
   };
+
+  const hip = mid(lm[LM.L_HIP], lm[LM.R_HIP]);
+  if (hipBaseline.value == null || Math.abs(hip.y - hipBaseline.value) < FREEZE_GESTURE) {
+    hipBaseline.update(hip.y);
+  }
+  const rise = (hipBaseline.value ?? hip.y) - hip.y;
+  if (jumpTrigger.update(rise)) {
+    dynoBoost = 0.4;
+    climbProgress += 45; // petite impulsion, légère et naturelle
+  }
 });
 
 // ---------- Monde d'escalade ----------
 const BASE_SCREEN_Y = H * 0.56;
-const GRAB_RADIUS = 60;
-const MAX_REACH = 240;
+const GRAB_RADIUS = 72;
+const DYNO_GRAB_RADIUS = 118;
+const MAX_REACH = 250;
+const COMFORTABLE_ARM = 130; // longueur maximale affichée du bras — au-delà, on ne dessine plus la vraie distance
 const SLOW_FALL_RATE = 35;
 const TARGET_HEIGHT = 3400;
 const PX_PER_METER = 90;
+const HOLD_RETAIN_BELOW = 1400; // garde les prises longtemps derrière soi pour pouvoir redescendre
 
 let state = "idle";
 let climbProgress = 0;
@@ -78,22 +100,33 @@ function generateHoldsAhead() {
     lastSide = flip;
     const x = flip * (80 + Math.random() * 150);
     holds.push({ worldY: nextHoldY, x, id: Math.random(), grabbedBy: null });
-    nextHoldY += 150 + Math.random() * 70;
+    nextHoldY += 195 + Math.random() * 90;
   }
 }
 
 function screenYFor(worldY) { return BASE_SCREEN_Y - (worldY - climbProgress); }
 
+// Longueur de bras affichée toujours réaliste : on ne dessine jamais plus
+// loin que COMFORTABLE_ARM depuis l'épaule, même si la vraie main (donc la
+// prise tenue) est plus loin — la logique de jeu, elle, reste inchangée.
+function clampToArm(originX, originY, targetX, targetY, maxLen) {
+  const dx = targetX - originX, dy = targetY - originY;
+  const dist = Math.hypot(dx, dy) || 1;
+  const scale = Math.min(1, maxLen / dist);
+  return { x: originX + dx * scale, y: originY + dy * scale };
+}
+
 function tryGrab(side) {
   const hand = wristScreen[side];
   if (!hand || grip[side]) return;
+  const radius = dynoBoost > 0 ? DYNO_GRAB_RADIUS : GRAB_RADIUS;
   let closest = null, bestDist = Infinity;
   for (const h of holds) {
     if (h.grabbedBy) continue;
     const sy = screenYFor(h.worldY);
     const sx = W / 2 + h.x;
     const d = Math.hypot(hand.x - sx, hand.y - sy);
-    if (d < GRAB_RADIUS && d < bestDist) { bestDist = d; closest = h; }
+    if (d < radius && d < bestDist) { bestDist = d; closest = h; }
   }
   if (closest) { closest.grabbedBy = side; grip[side] = closest; }
 }
@@ -124,13 +157,15 @@ function update(dt) {
       const h = grip[s];
       sum += (wristScreen[s].y - BASE_SCREEN_Y + h.worldY);
     }
-    climbProgress = sum / active.length;
+    climbProgress = Math.max(0, sum / active.length);
   } else {
     climbProgress = Math.max(0, climbProgress - SLOW_FALL_RATE * dt);
   }
 
+  dynoBoost = Math.max(0, dynoBoost - dt);
+
   generateHoldsAhead();
-  holds = holds.filter((h) => h.worldY > climbProgress - 400);
+  holds = holds.filter((h) => h.worldY > climbProgress - HOLD_RETAIN_BELOW);
 
   if (Math.random() < 0.5) {
     for (const s of active) {
@@ -165,14 +200,17 @@ function drawWall() {
 }
 
 function drawHold(h) {
+  // Les prises tenues sont dessinées par drawClimber(), à la position (limitée
+  // par la longueur du bras) de la main qui les tient — pas ici, sinon la
+  // prise apparaîtrait "vraie" position, loin du bras qui la tient.
+  if (h.grabbedBy) return;
   const sy = screenYFor(h.worldY);
   if (sy < -40 || sy > H + 40) return;
   const sx = W / 2 + h.x;
   ctx.save();
-  const color = h.grabbedBy ? "#34d399" : "#fbbf24";
-  ctx.shadowColor = color;
-  ctx.shadowBlur = h.grabbedBy ? 20 : 10;
-  ctx.fillStyle = color;
+  ctx.shadowColor = "#fbbf24";
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = "#fbbf24";
   ctx.beginPath();
   ctx.ellipse(sx, sy, 26, 16, Math.sin(h.id * 10) * 0.4, 0, Math.PI * 2);
   ctx.fill();
@@ -206,8 +244,19 @@ function drawClimber() {
   ctx.shadowBlur = 0;
 
   for (const side of ["left", "right"]) {
-    const hand = wristScreen[side] || { x: shoulders[side].x, y: shoulderY + 40 };
     const sh = shoulders[side];
+    // Bras réaliste seulement pendant qu'on tient une prise (c'est là que
+    // l'étirement choquait) : le reste du temps, la main affichée suit
+    // fidèlement la vraie position détectée, pour que la zone de préhension
+    // corresponde à ce que le joueur voit.
+    let hand;
+    if (grip[side]) {
+      const rawTarget = { x: W / 2 + grip[side].x, y: screenYFor(grip[side].worldY) };
+      hand = clampToArm(sh.x, sh.y, rawTarget.x, rawTarget.y, COMFORTABLE_ARM);
+    } else {
+      hand = wristScreen[side] || { x: shoulders[side].x, y: shoulderY + 40 };
+    }
+
     ctx.strokeStyle = grip[side] ? "#34d399" : "rgba(224,242,254,0.7)";
     ctx.lineWidth = 8;
     ctx.lineCap = "round";
@@ -215,6 +264,20 @@ function drawClimber() {
     ctx.moveTo(sh.x, sh.y);
     ctx.lineTo(hand.x, hand.y);
     ctx.stroke();
+
+    if (grip[side]) {
+      // La prise tenue est dessinée ici, "collée" à la main affichée
+      // (bras réaliste) plutôt qu'à sa vraie position lointaine.
+      const h = grip[side];
+      ctx.save();
+      ctx.shadowColor = "#34d399";
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = "#34d399";
+      ctx.beginPath();
+      ctx.ellipse(hand.x, hand.y, 26, 16, Math.sin(h.id * 10) * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     ctx.fillStyle = grip[side] ? "#34d399" : "#e0f2fe";
     ctx.beginPath();
