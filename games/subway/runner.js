@@ -1,6 +1,7 @@
 import { PoseController, LM } from "../../assets/js/pose/PoseController.js";
 import { EMA, Baseline, EdgeTrigger, mid } from "../../assets/js/pose/gestures.js";
 import { drawSkeleton } from "../../assets/js/pose/skeleton.js";
+import { createPerspective } from "../../assets/js/render/perspective.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -71,9 +72,9 @@ const CENTER_X = W / 2;
 const LANE_OFFSET_NEAR = 165;
 const LANES = [-1, 0, 1];
 
-function scaleAt(z) { return 1 - z * 0.84; }
-function yAt(z) { return GROUND_Y - z * (GROUND_Y - HORIZON_Y); }
-function laneX(lane, z) { return CENTER_X + lane * LANE_OFFSET_NEAR * scaleAt(z); }
+const persp = createPerspective({ horizonY: HORIZON_Y, groundY: GROUND_Y, centerX: CENTER_X, farScale: 0.16 });
+const { scaleAt, yAt } = persp;
+function laneX(lane, z) { return persp.xAt(lane * LANE_OFFSET_NEAR, z); }
 
 const GRAVITY = 2600;
 const JUMP_VELOCITY = -980;

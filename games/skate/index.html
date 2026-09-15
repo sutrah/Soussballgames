@@ -8,23 +8,50 @@
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="back brand" href="../../index.html">← Soussballgames</a>
-      <div class="pill">🚧 En construction</div>
-    </header>
-    <div class="center-col">
-      <h1>Skate — sensation de glisse</h1>
-      <p>Une route néon défile façon Tron pour donner une vraie sensation de vitesse, sans avoir besoin de simuler une planche en 3D.</p>
-      <ul class="mechanic-list">
-        <li><b>Poussée du pied</b> — un pied qui recule puis repart vers l'avant (comme une poussée réelle) ajoute de la vitesse.</li>
-        <li><b>Virages</b> — incliner les épaules à gauche ou à droite fait tourner la trajectoire dans le bon sens, avec une caméra qui suit le virage.</li>
-        <li><b>Bonus à la main</b> — des orbes apparaissent sur les côtés ; tendre la main du bon côté au bon moment les attrape.</li>
-        <li><b>Défilement</b> — grille lumineuse façon Tron en perspective, plus simple et plus lisible qu'une vraie route texturée, tout en donnant une forte impression de vitesse.</li>
-      </ul>
-      <p>Prochaine étape de développement — revenez bientôt.</p>
-      <a class="btn btn-primary" href="../../index.html">Retour à l'accueil</a>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Score <span id="scoreVal">0</span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="720" height="900"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Skate</h2>
+        <p>
+          Reculez-vous pour que le haut de votre corps soit visible en entier.
+          Mimez une poussée du pied (avancez un genou puis reposez-le) pour
+          prendre de la vitesse, et penchez les épaules à gauche ou à droite
+          pour diriger votre trajectoire.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">🦵 Poussée = vitesse</span>
+          <span class="hint-chip">🧍 Épaules penchées = virage</span>
+          <span class="hint-chip">✋ Main tendue = bonus attrapé</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>Sortie de route !</h2>
+        <p>Score final : <b id="finalScore">0</b> — meilleur score : <b id="bestScore">0</b></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script type="module" src="skate.js"></script>
 </body>
 </html>
