@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flappy Patineur — Soussballgames</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
+<link rel="stylesheet" href="../../assets/css/main.css" />
+<style>
+  #fx { image-rendering: optimizeSpeed; }
+</style>
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Score <span id="scoreVal">0</span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="720" height="900"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Flappy Patineur</h2>
+        <p>
+          Placez-vous face à la caméra, assez loin pour que vos genoux soient visibles.
+          Marchez sur place : chaque pas fait battre des ailes à votre personnage,
+          qui doit se faufiler entre les tunnels d'obstacles.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">👣 1 pas = 1 battement</span>
+          <span class="hint-chip">🕳️ Un seul passage entre chaque paire</span>
+          <span class="hint-chip">📷 Aucune vidéo envoyée en ligne</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>Perdu !</h2>
+        <p>Score final : <b id="finalScore">0</b> — meilleur score : <b id="bestScore">0</b></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="flappy.js"></script>
+</body>
+</html>

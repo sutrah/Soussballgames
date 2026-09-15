@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Soussballgames — jeux caméra, sans compte</title>
+<meta name="description" content="Des jeux entièrement gratuits, sans connexion ni création de compte, joués avec votre corps grâce à la reconnaissance de mouvement." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand"><span class="dot"></span> Soussballgames</div>
+      <div class="pill">🎥 Caméra requise · 0 compte · 0 connexion</div>
+    </header>
+
+    <section class="hero">
+      <h1>Jouez avec votre corps.<br />Aucun compte, aucune friction.</h1>
+      <p>
+        Une caméra, un peu d'espace, et c'est parti. Chaque jeu ci-dessous utilise la
+        reconnaissance de mouvement (MediaPipe) directement dans votre navigateur —
+        rien n'est envoyé sur un serveur, rien à installer, rien à créer.
+      </p>
+    </section>
+
+    <main class="grid">
+      <article class="card" style="--card-glow:#7dd3fc">
+        <span class="tag">Jouable</span>
+        <h3>Flappy Patineur</h3>
+        <p>
+          Marchez sur place devant la caméra : chaque pas fait battre des ailes à
+          votre personnage, qui doit se faufiler entre des tunnels d'obstacles
+          haut/bas, au rythme de vos foulées.
+        </p>
+        <div class="cam-req">📷 Détection des genoux / hanches (pas sur place)</div>
+        <a class="btn btn-primary" href="games/flappy/index.html">Jouer →</a>
+      </article>
+
+      <article class="card soon" style="--card-glow:#a78bfa">
+        <span class="tag">Bientôt</span>
+        <h3>Runner façon Subway</h3>
+        <p>
+          Un personnage court en continu sur une route qui défile à l'infini.
+          Sautez pour le faire sauter, penchez-vous à gauche/droite pour changer
+          de voie, accroupissez-vous pour passer sous les obstacles.
+        </p>
+        <div class="cam-req">📷 Saut / accroupi / déplacement latéral</div>
+        <a class="btn btn-ghost" href="games/subway/index.html">Voir le concept</a>
+      </article>
+
+      <article class="card soon" style="--card-glow:#34d399">
+        <span class="tag">Bientôt · Multijoueur</span>
+        <h3>Room — Énigmes à plusieurs</h3>
+        <p>
+          Créez une room, partagez un code, et résolvez des énigmes qui ne se
+          débloquent qu'en coordonnant vos gestes à 2, 3 ou 4 joueurs — chaque
+          silhouette apparaît en direct dans la même scène partagée.
+        </p>
+        <div class="cam-req">📷 Pose de chaque joueur · 🔗 WebRTC P2P, code de room</div>
+        <a class="btn btn-ghost" href="games/rooms/index.html">Voir le concept</a>
+      </article>
+
+      <article class="card soon" style="--card-glow:#fb923c">
+        <span class="tag">Bientôt</span>
+        <h3>Skate — sensation de glisse</h3>
+        <p>
+          Poussez avec le pied pour accélérer, penchez les épaules à gauche ou à
+          droite pour tourner, tendez les mains pour attraper des bonus sur une
+          route stylisée qui défile à toute vitesse.
+        </p>
+        <div class="cam-req">📷 Poussée du pied / inclinaison épaules / mains</div>
+        <a class="btn btn-ghost" href="games/skate/index.html">Voir le concept</a>
+      </article>
+
+      <article class="card soon" style="--card-glow:#f472b6">
+        <span class="tag">Bientôt</span>
+        <h3>Rythme — Touche du pied</h3>
+        <p>
+          Des notes défilent de haut en bas sur plusieurs pistes : tapez du pied
+          au bon moment, dans le tempo, pour enchaîner les combos sans faute.
+        </p>
+        <div class="cam-req">📷 Détection des tapes de pied</div>
+        <a class="btn btn-ghost" href="games/rhythm/index.html">Voir le concept</a>
+      </article>
+
+      <article class="card soon" style="--card-glow:#fbbf24">
+        <span class="tag">Bientôt</span>
+        <h3>Escalade verticale</h3>
+        <p>
+          Attrapez des prises avec les mains, tirez pour grimper : la caméra suit
+          vos bras pour recréer la sensation de monter un mur verticalement.
+        </p>
+        <div class="cam-req">📷 Position et traction des mains</div>
+        <a class="btn btn-ghost" href="games/climb/index.html">Voir le concept</a>
+      </article>
+    </main>
+
+    <footer class="footer">
+      Soussballgames — 100% dans le navigateur, aucune image de caméra n'est envoyée où que ce soit.
+    </footer>
+  </div>
+</body>
+</html>
