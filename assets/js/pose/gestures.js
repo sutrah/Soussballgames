@@ -73,3 +73,29 @@ export function kneeLift(lm, LM) {
 export function visible(lm, indices, min = 0.4) {
   return indices.every((i) => (lm[i]?.v ?? 0) >= min);
 }
+
+/** { left, right } : true si le poignet correspondant est nettement au-dessus de l'épaule. */
+export function handsRaised(lm, LM, margin = 0.08) {
+  return {
+    left: lm[LM.L_WRIST].y < lm[LM.L_SHOULDER].y - margin,
+    right: lm[LM.R_WRIST].y < lm[LM.R_SHOULDER].y - margin,
+  };
+}
+
+/** Vrai si les deux poignets sont écartés bien au-delà de la largeur des épaules (bras en croix). */
+export function armsSpread(lm, LM, ratio = 2.1) {
+  const shoulderW = dist(lm[LM.L_SHOULDER], lm[LM.R_SHOULDER]) || 1;
+  const wristW = dist(lm[LM.L_WRIST], lm[LM.R_WRIST]);
+  return wristW / shoulderW > ratio;
+}
+
+/** Zone latérale (-1 gauche, 0 centre, 1 droite) à partir d'un x normalisé, avec hystérésis. */
+export function lateralZone(x, prevZone = 0, { enter = 0.14, exit = 0.08 } = {}) {
+  const center = 0.5;
+  if (prevZone <= -1 && x < center - exit) return -1;
+  if (prevZone >= 1 && x > center + exit) return 1;
+  if (x < center - enter) return -1;
+  if (x > center + enter) return 1;
+  if (Math.abs(x - center) < exit) return 0;
+  return prevZone;
+}

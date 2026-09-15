@@ -3,33 +3,96 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Room — Énigmes à plusieurs — Soussballgames</title>
+<title>Room — Énigmes à deux — Soussballgames</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="topbar">
-      <a class="back brand" href="../../index.html">← Soussballgames</a>
-      <div class="pill">🚧 En construction · WebRTC P2P</div>
-    </header>
-    <div class="center-col">
-      <h1>Room — Énigmes à plusieurs</h1>
-      <p>
-        Une room se crée avec un simple code à partager (pas de compte). Les joueurs se
-        connectent en pair-à-pair (WebRTC) et voient leurs silhouettes, détectées par pose,
-        évoluer ensemble dans la même scène.
-      </p>
-      <ul class="mechanic-list">
-        <li><b>Connexion</b> — hôte génère un code de room, les autres le saisissent pour rejoindre en P2P, sans serveur de jeu.</li>
-        <li><b>Silhouettes partagées</b> — chaque joueur envoie ses repères de pose (pas la vidéo) ; tout le monde voit tous les avatars dans la même pièce.</li>
-        <li><b>Énigmes à contrainte de nombre</b> — chaque niveau n'est résolvable qu'avec le nombre exact de joueurs prévu (2, 3 ou 4).</li>
-        <li><b>Exemple prévu</b> — 5 niveaux pour 2 joueurs : leviers à actionner en miroir, plateforme qui ne tient que si les deux joueurs lèvent le bras en même temps, code à composer en tenant une pose chacun sur un chiffre, etc.</li>
-        <li><b>Scalabilité</b> — les mêmes mécaniques seront déclinées pour 3 et 4 joueurs avec des variantes plus complexes.</li>
-      </ul>
-      <p>Prochaine étape de développement — revenez bientôt.</p>
-      <a class="btn btn-primary" href="../../index.html">Retour à l'accueil</a>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Non connecté</span></div>
+      <div class="level-pill" id="levelPill"></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="960" height="600"></canvas>
+
+      <div class="cam-preview" id="camPreview" style="display:none">
+        <video id="video" autoplay playsinline muted></video>
+      </div>
+
+      <!-- Écran 1 : choix créer / rejoindre -->
+      <div class="overlay" id="screenLobby">
+        <h2>Room à 2 joueurs</h2>
+        <p>
+          Cette room ne fonctionne qu'à exactement <b>2 joueurs</b> : chacun sur son propre
+          appareil, avec sa propre caméra. Aucun compte, aucun serveur — juste un code à
+          partager, connexion directe entre vos deux navigateurs.
+        </p>
+        <button class="btn btn-primary" id="btnHost">Créer une room</button>
+        <div class="divider">ou</div>
+        <div class="field">
+          <input type="text" id="joinCode" placeholder="CODE" maxlength="10" />
+          <button class="btn btn-ghost" id="btnJoin">Rejoindre</button>
+        </div>
+      </div>
+
+      <!-- Écran 2 : room créée, en attente -->
+      <div class="overlay" id="screenWaiting" style="display:none">
+        <h2>En attente du 2ᵉ joueur…</h2>
+        <p>Partagez ce code avec l'autre joueur :</p>
+        <div class="code-display" id="roomCode">—</div>
+        <p style="font-size:0.82rem">La partie démarre automatiquement dès sa connexion.</p>
+      </div>
+
+      <!-- Écran 3 : connexion en cours (côté invité) -->
+      <div class="overlay" id="screenConnecting" style="display:none">
+        <h2>Connexion…</h2>
+        <p id="connectingLabel">Recherche de la room.</p>
+      </div>
+
+      <!-- Écran 4 : activation caméra (les deux joueurs) -->
+      <div class="overlay" id="screenCam" style="display:none">
+        <h2>Connecté !</h2>
+        <p>
+          Activez votre caméra pour rejoindre la scène. Placez-vous pour que le haut de
+          votre corps (épaules, hanches, mains) soit bien visible.
+        </p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnCam">Activer ma caméra</button>
+        </div>
+        <p class="status-line" id="peerCamStatus">En attente de l'autre joueur…</p>
+      </div>
+
+      <!-- HUD niveau -->
+      <div id="levelBanner" style="display:none; position:absolute; top:14px; left:0; right:0; text-align:center; z-index:6;">
+        <div style="display:inline-block; padding:8px 18px; border-radius:999px; background:rgba(6,7,13,0.6); border:1px solid var(--glass-border); backdrop-filter: blur(8px);">
+          <b id="levelTitle">Niveau 1</b> — <span id="levelHint">…</span>
+        </div>
+        <div class="progress-track" style="margin:10px auto 0;"><div class="progress-fill" id="levelProgress"></div></div>
+      </div>
+
+      <!-- Écran fin -->
+      <div class="overlay" id="screenWin" style="display:none">
+        <h2>🎉 Room terminée !</h2>
+        <p>Vous avez résolu les 5 énigmes ensemble.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="../../index.html">Retour au menu</a>
+        </div>
+      </div>
+
+      <!-- Erreur / déconnexion -->
+      <div class="overlay" id="screenError" style="display:none">
+        <h2>Connexion interrompue</h2>
+        <p id="errorLabel">L'autre joueur a été déconnecté.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="../../index.html">Retour au menu</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <script type="module" src="room.js"></script>
 </body>
 </html>
