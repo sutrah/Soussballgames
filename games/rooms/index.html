@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Room — Énigmes à deux — Soussballgames</title>
+<title>Room — Énigmes à plusieurs — Soussballgames</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
 <link rel="stylesheet" href="../../assets/css/main.css" />
 </head>
@@ -24,12 +24,21 @@
 
       <!-- Écran 1 : choix créer / rejoindre -->
       <div class="overlay" id="screenLobby">
-        <h2>Room à 2 joueurs</h2>
+        <h2>Room à plusieurs</h2>
         <p>
-          Cette room ne fonctionne qu'à exactement <b>2 joueurs</b> : chacun sur son propre
-          appareil, avec sa propre caméra. Aucun compte, aucun serveur — juste un code à
-          partager, connexion directe entre vos deux navigateurs.
+          De 2 à 5 joueurs, chacun sur son propre appareil avec sa propre caméra. Aucun
+          compte, aucun serveur — juste un code à partager, connexion directe entre vos
+          navigateurs. Les énigmes s'adaptent au nombre de joueurs présents.
         </p>
+        <div class="field" style="margin-bottom:6px">
+          <span style="font-size:0.85rem;color:var(--text-1)">Nombre de joueurs :</span>
+          <select id="maxPlayers" style="background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);color:var(--text-0);padding:8px 12px;border-radius:var(--radius-sm);font-family:var(--font);">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
         <button class="btn btn-primary" id="btnHost">Créer une room</button>
         <div class="divider">ou</div>
         <div class="field">
@@ -38,12 +47,15 @@
         </div>
       </div>
 
-      <!-- Écran 2 : room créée, en attente -->
+      <!-- Écran 2 : room créée, en attente (hôte) -->
       <div class="overlay" id="screenWaiting" style="display:none">
-        <h2>En attente du 2ᵉ joueur…</h2>
-        <p>Partagez ce code avec l'autre joueur :</p>
+        <h2>En attente des joueurs…</h2>
+        <p>Partagez ce code :</p>
         <div class="code-display" id="roomCode">—</div>
-        <p style="font-size:0.82rem">La partie démarre automatiquement dès sa connexion.</p>
+        <p class="status-line" id="rosterLabel" style="justify-content:center">1 joueur connecté</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStartRoom" disabled>Lancer la partie</button>
+        </div>
       </div>
 
       <!-- Écran 3 : connexion en cours (côté invité) -->
@@ -52,9 +64,16 @@
         <p id="connectingLabel">Recherche de la room.</p>
       </div>
 
-      <!-- Écran 4 : activation caméra (les deux joueurs) -->
-      <div class="overlay" id="screenCam" style="display:none">
+      <!-- Écran 3b : invité connecté, attend le lancement -->
+      <div class="overlay" id="screenWaitingGuest" style="display:none">
         <h2>Connecté !</h2>
+        <p class="status-line" id="rosterLabelGuest" style="justify-content:center">1 joueur connecté</p>
+        <p style="font-size:0.82rem">En attente que l'hôte lance la partie…</p>
+      </div>
+
+      <!-- Écran 4 : activation caméra (tous les joueurs) -->
+      <div class="overlay" id="screenCam" style="display:none">
+        <h2>C'est parti !</h2>
         <p>
           Activez votre caméra pour rejoindre la scène. Placez-vous pour que le haut de
           votre corps (épaules, hanches, mains) soit bien visible.
@@ -62,7 +81,7 @@
         <div class="btn-row">
           <button class="btn btn-primary" id="btnCam">Activer ma caméra</button>
         </div>
-        <p class="status-line" id="peerCamStatus">En attente de l'autre joueur…</p>
+        <p class="status-line" id="peerCamStatus">En attente des autres joueurs…</p>
       </div>
 
       <!-- HUD niveau -->
@@ -76,7 +95,7 @@
       <!-- Écran fin -->
       <div class="overlay" id="screenWin" style="display:none">
         <h2>🎉 Room terminée !</h2>
-        <p>Vous avez résolu les 5 énigmes ensemble.</p>
+        <p>Vous avez résolu les énigmes ensemble.</p>
         <div class="btn-row">
           <a class="btn btn-primary" href="../../index.html">Retour au menu</a>
         </div>
@@ -85,7 +104,7 @@
       <!-- Erreur / déconnexion -->
       <div class="overlay" id="screenError" style="display:none">
         <h2>Connexion interrompue</h2>
-        <p id="errorLabel">L'autre joueur a été déconnecté.</p>
+        <p id="errorLabel">Un joueur a été déconnecté.</p>
         <div class="btn-row">
           <a class="btn btn-primary" href="../../index.html">Retour au menu</a>
         </div>
