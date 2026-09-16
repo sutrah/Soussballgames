@@ -70,7 +70,6 @@ const GRAB_RADIUS = 72;
 const DYNO_GRAB_RADIUS = 118;
 const MAX_REACH = 250;
 const COMFORTABLE_ARM = 130; // longueur maximale affichée du bras — au-delà, on ne dessine plus la vraie distance
-const SLOW_FALL_RATE = 35;
 const TARGET_HEIGHT = 3400;
 const PX_PER_METER = 90;
 const HOLD_RETAIN_BELOW = 1400; // garde les prises longtemps derrière soi pour pouvoir redescendre
@@ -150,6 +149,11 @@ function update(dt) {
     releaseIfOverextended(side);
   }
 
+  // Progression strictement monotone : on ne peut que monter (ou bouger
+  // latéralement), jamais redescendre — ni par un faux mouvement (bruit de
+  // pose faisant remonter la main tenue), ni en raccrochant par erreur une
+  // prise déjà passée plus bas (son affichage revient alors "à niveau" au
+  // lieu de faire redescendre visuellement le personnage).
   const active = ["left", "right"].filter((s) => grip[s] && wristScreen[s]);
   if (active.length > 0) {
     let sum = 0;
@@ -157,10 +161,9 @@ function update(dt) {
       const h = grip[s];
       sum += (wristScreen[s].y - BASE_SCREEN_Y + h.worldY);
     }
-    climbProgress = Math.max(0, sum / active.length);
-  } else {
-    climbProgress = Math.max(0, climbProgress - SLOW_FALL_RATE * dt);
+    climbProgress = Math.max(climbProgress, sum / active.length);
   }
+  // Sans prise tenue : on reste sur place (pas de glissade passive vers le bas).
 
   dynoBoost = Math.max(0, dynoBoost - dt);
 
