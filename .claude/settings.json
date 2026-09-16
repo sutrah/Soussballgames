@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pgrep -f 'http.server 8080' >/dev/null 2>&1 || (python3 -m http.server 8080 >/tmp/soussballgames-server.log 2>&1 &)",
+            "statusMessage": "Démarrage du serveur local (http://localhost:8080)…"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/check-js.sh",
+            "statusMessage": "Vérification de la syntaxe JS…"
+          }
+        ]
+      }
+    ]
+  }
+}
