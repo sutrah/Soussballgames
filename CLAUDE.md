@@ -30,7 +30,7 @@ Games require `getUserMedia` + MediaPipe pose detection, so they can't be smoke-
 - **`pose/PoseController.js`** — wraps `getUserMedia` + MediaPipe `PoseLandmarker` (loaded from `cdn.jsdelivr.net`, GPU delegate). Exposes `onFrame(lm, now)` with 33 landmarks, already mirrored (`x' = 1 - x`) so gestures map naturally to what the user sees of themselves. `LM` exports named landmark indices.
 - **`pose/gestures.js`** — reusable signal-processing primitives built on raw landmarks: `EMA`/`Baseline` (smoothing/adaptive baseline), `EdgeTrigger` (hysteresis-based rising-edge detector used for step/jump/push detection), plus higher-level one-shot gestures (`handsRaised`, `armsSpread`, `lateralZone`, `shoulderTilt`, `kneeLift`). New games should extend this file rather than re-deriving detection math inline.
 - **`pose/skeleton.js`** — draws the small calibration skeleton shown in every game's camera-preview thumbnail.
-- **`render/perspective.js`** — shared pseudo-3D "road scrolling toward the camera" projection (`scaleAt`/`yAt`/`xAt` from a `z∈[0,1]` depth), used by both the runner and skate games so their ground/lane math stays consistent.
+- **`render/perspective.js`** — shared pseudo-3D "road scrolling toward the camera" projection (`scaleAt`/`yAt`/`xAt` from a `z∈[0,1]` depth), used by the runner game's ground/lane math.
 - **`net/PeerRoom.js`** — WebRTC P2P wrapper over PeerJS's public broker (signaling only; gameplay data flows peer-to-peer). No server to host, matches the "no account, no backend" constraint. **Caveat**: this sandbox's proxy blocks the WebSocket handshake to `0.peerjs.com` (likely datacenter-IP blocking on the free broker's side), so live two-peer connection can't be verified from inside this environment — only the post-connection game logic can be (see the room game's approach below).
 
 ### Per-game structure (`games/<name>/`)
@@ -43,7 +43,7 @@ Each game is `index.html` (UI shell: start overlay with instructions, game-over/
 
 Notable per-game specifics:
 - **`flappy`** — control is two floor "tiles" (left/right halves of the frame, detected via ankle position) alternately lit by a fixed-tempo metronome, *not* a knee-lift gesture. This mirrors the proven "Pas de Patineur" exercise in the sibling reference repo `sutrah/weballgames` (`squelette.html`), which uses exactly this zone+metronome approach — check that file first before changing this game's input model. Successfully stepping on the lit tile advances the metronome target (`advanceBeat()`); missing it also advances (never stalls). Has an intro countdown and pauses entirely while feet aren't detected, so the player is never punished before they're in frame.
-- **`subway`** (runner) and **`skate`** both use `render/perspective.js` for their scrolling ground.
+- **`subway`** (runner) uses `render/perspective.js` for its scrolling ground.
 - **`rooms`** (2-player co-op) is **host-authoritative**: only the host runs the 5-level puzzle state machine; the guest just renders whatever state the host broadcasts, and both sides also broadcast their own local gesture state (`handsUp`/`crouch`/`spread`/`lane`) plus a reduced 11-point landmark set for rendering the other player's stick figure.
 - **`climb`** — the gripped hand's *rendered* position is deliberately clamped to a realistic arm length from the shoulder (`clampToArm`), decoupled from the *real* wrist position used for the underlying grab/climb physics — this was a deliberate fix for the arm otherwise visually stretching to the true (far) wrist position. Don't collapse these back into one value.
 
