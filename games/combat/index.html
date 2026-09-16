@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Combat — Soussballgames</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
+<link rel="stylesheet" href="../../assets/css/main.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Score <span id="scoreVal">0</span> <span style="color:var(--text-2); font-weight:400; font-size:0.85rem">· combo <span id="comboVal">0</span></span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="960" height="600"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <!-- Écran 1 : choix du mode -->
+      <div class="overlay" id="screenMode">
+        <h2>Combat</h2>
+        <p>
+          Battez-vous à mains nues face à une IA ou à un·e adversaire en direct.
+          Avant le combat, choisissez exactement 3 bonus parmi 5 : ils définissent
+          les gestes que l'adversaire vous proposera pendant l'assaut.
+        </p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnModeAi">🤖 Contre l'IA</button>
+          <button class="btn btn-ghost" id="btnModeOnline">🌐 1v1 en ligne</button>
+        </div>
+      </div>
+
+      <!-- Écran 1b : lobby 1v1 (créer / rejoindre) -->
+      <div class="overlay" id="screenLobby" style="display:none">
+        <h2>1v1 en ligne</h2>
+        <p>Un code à partager, connexion directe entre vos deux navigateurs. Aucun compte, aucun serveur.</p>
+        <button class="btn btn-primary" id="btnHost">Créer un duel</button>
+        <div class="divider">ou</div>
+        <div class="field">
+          <input type="text" id="joinCode" placeholder="CODE" maxlength="10" />
+          <button class="btn btn-ghost" id="btnJoin">Rejoindre</button>
+        </div>
+      </div>
+
+      <!-- Écran 1c : room créée, en attente de l'adversaire -->
+      <div class="overlay" id="screenWaiting" style="display:none">
+        <h2>En attente de l'adversaire…</h2>
+        <p>Partagez ce code :</p>
+        <div class="code-display" id="roomCode">—</div>
+      </div>
+
+      <!-- Écran 1d : connexion en cours (côté invité) -->
+      <div class="overlay" id="screenConnecting" style="display:none">
+        <h2>Connexion…</h2>
+        <p>Recherche du duel.</p>
+      </div>
+
+      <!-- Écran 2 : choix des bonus -->
+      <div class="overlay" id="screenBonus" style="display:none">
+        <h2>Choisissez vos 3 bonus</h2>
+        <p id="bonusHint">Sélectionnez exactement 3 techniques pour votre combattant.</p>
+        <div class="bonus-grid" id="bonusGrid"></div>
+        <p class="status-line" id="bonusCount" style="justify-content:center">0 / 3 sélectionnés</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnBonusReady" disabled>Prêt au combat</button>
+        </div>
+        <p class="status-line" id="bonusWaitLabel" style="justify-content:center; display:none">En attente de l'adversaire…</p>
+      </div>
+
+      <!-- Écran 3 : activation caméra -->
+      <div class="overlay" id="screenCam" style="display:none">
+        <h2>C'est parti !</h2>
+        <p>
+          Reculez-vous pour que le haut de votre corps (épaules, coudes, mains, hanches)
+          soit bien visible. Gardez les coudes pliés en position de garde entre deux coups.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">👊 Tendez le bras d'un coude plié = coup</span>
+          <span class="hint-chip">↔️ Déplacez-vous / accroupissez pour esquiver</span>
+          <span class="hint-chip">🦵 Petit saut pour une attaque aérienne</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnCam">Activer ma caméra</button>
+        </div>
+        <p class="status-line" id="peerCamStatus" style="display:none">En attente de l'adversaire…</p>
+      </div>
+
+      <!-- HUD combat -->
+      <div id="fightHud" style="display:none; position:absolute; top:14px; left:0; right:0; text-align:center; z-index:6;">
+        <div style="display:inline-block; padding:8px 18px; border-radius:999px; background:rgba(6,7,13,0.6); border:1px solid var(--glass-border); backdrop-filter: blur(8px); min-width:260px;">
+          <b id="promptLabel">En garde…</b> — <span id="timeLeft">60</span>s
+        </div>
+        <div class="vs-row" id="vsRow" style="display:none">
+          <span id="vsMeLabel">Vous</span>
+          <div class="vs-track"><div class="vs-fill-me" id="vsMeFill" style="width:0%"></div><div class="vs-fill-opp" id="vsOppFill" style="width:0%"></div></div>
+          <span id="vsOppLabel">Adversaire</span>
+        </div>
+      </div>
+
+      <!-- Écran fin -->
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2 id="overTitle">Combat terminé !</h2>
+        <p id="overScore"></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
+
+      <!-- Erreur / déconnexion -->
+      <div class="overlay" id="screenError" style="display:none">
+        <h2>Connexion interrompue</h2>
+        <p id="errorLabel">L'adversaire a été déconnecté.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="../../index.html">Retour au menu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="combat.js"></script>
+</body>
+</html>
