@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Patinage — Route de glace — Soussballgames</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
+<link rel="stylesheet" href="../../assets/css/main.css" />
+<style>
+  /* Indicateurs de pas gauche/droite — volontairement discrets : de petites
+     pastilles aux coins bas, pas de grands blocs colorés façon Flappy, pour
+     laisser toute la place visuelle à la route qui défile. */
+  #stepPills { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .step-pill {
+    position: absolute; bottom: 18px; width: 46px; height: 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    transition: background 0.08s, box-shadow 0.08s;
+  }
+  .step-pill.left { left: 18px; }
+  .step-pill.right { right: 18px; }
+  .step-pill.hit { background: rgba(125,211,252,0.85); box-shadow: 0 0 14px rgba(125,211,252,0.8); border-color: transparent; }
+</style>
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">Distance <span id="scoreVal">0</span> m</div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game"></canvas>
+
+      <div id="stepPills">
+        <div class="step-pill left" id="pillLeft"></div>
+        <div class="step-pill right" id="pillRight"></div>
+      </div>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Patinage — Route de glace</h2>
+        <p>
+          Reculez-vous pour que vos chevilles soient bien visibles. Marchez sur place,
+          pied gauche puis pied droit en alternance, pour glisser vers l'avant sur la
+          glace — la glisse ralentit doucement entre deux pas, comme un vrai patineur.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">🦶 Alternez gauche / droite pour avancer</span>
+          <span class="hint-chip">🔁 Deux pas du même côté = virage de ce côté</span>
+          <span class="hint-chip">💎 Restez dans l'axe des dalles pour les ramasser</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2>🧊 Session terminée !</h2>
+        <p>Distance : <b id="finalScore">0</b> m — record : <b id="bestScore">0</b> m</p>
+        <p style="font-size:0.82rem">Dalles ramassées : <b id="finalTiles">0</b></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="patinage.js"></script>
+</body>
+</html>
