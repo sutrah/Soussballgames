@@ -7,8 +7,10 @@ import { drawSkeleton } from "../../assets/js/pose/skeleton.js";
 // Python (Panda3D) : il ne peut pas tourner dans une page statique servie par
 // GitHub Pages, ce qui est l'architecture entière de ce site. On utilise donc
 // Three.js (WebGL, chargé depuis un CDN comme MediaPipe/PeerJS le sont déjà)
-// pour une vraie 3D qui reste 100% navigateur.
-const THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+// pour une vraie 3D qui reste 100% navigateur. Chargée via l'import map
+// déclarée dans index.html ("three" / "three/addons/") — nécessaire pour que
+// les modules de post-traitement (qui importent "three" en spécificateur nu
+// en interne) se résolvent depuis un CDN, sans bundler.
 
 // Accepté pour coller à la convention du fichier de référence (une page,
 // plusieurs exercices sélectionnés via ?exo=). Ce jeu n'implémente qu'un seul
@@ -283,28 +285,49 @@ btnStart.addEventListener("click", async () => {
 btnRetry.addEventListener("click", startGame);
 
 // ---------- Rendu 3D (Three.js) ----------
+// Trois cibles pour coller à l'image de référence : (1) un vrai bloom (les
+// matériaux "unlit" de Three.js ne rayonnent pas tout seuls comme un
+// ctx.shadowBlur en canvas 2D — sans passe de post-traitement, aucune ligne
+// néon ne "brille" réellement), (2) des montagnes en amas de cristaux
+// facettés dégradés (pas de simples cônes fil-de-fer épars), (3) un fond qui
+// rayonne (rais de lumière + grille "plafond"), pas un ciel vide.
 let THREE = null;
-let renderer = null, scene = null, camera = null;
-let roadTexture = null;
+let renderer = null, scene = null, camera = null, composer = null;
+let roadTexture = null, tileTexture = null;
+const ROAD_HALF_W = 7;
 
 async function ensureThree() {
   if (THREE) return;
-  THREE = await import(THREE_CDN);
+  const [threeMod, { EffectComposer }, { RenderPass }, { UnrealBloomPass }] = await Promise.all([
+    import("three"),
+    import("three/addons/postprocessing/EffectComposer.js"),
+    import("three/addons/postprocessing/RenderPass.js"),
+    import("three/addons/postprocessing/UnrealBloomPass.js"),
+  ]);
+  THREE = threeMod;
+
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x03040a);
-  scene.fog = new THREE.FogExp2(0x03040a, 0.026);
+  scene.fog = new THREE.FogExp2(0x03040a, 0.018);
 
-  camera = new THREE.PerspectiveCamera(72, 1, 0.1, 220);
+  camera = new THREE.PerspectiveCamera(72, 1, 0.1, 260);
   camera.position.set(0, 1.5, 4);
   camera.rotation.order = "YXZ";
   camera.lookAt(0, 1.2, -20);
 
+  buildSky();
   buildRoad();
   buildMountains();
   buildSun();
+
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 0.4));
+
   resizeRenderer();
   window.addEventListener("resize", resizeRenderer);
 }
@@ -316,65 +339,159 @@ function resizeRenderer() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  if (composer) composer.setSize(w, h);
 }
 
-function makeGridTexture() {
+// Fond du ciel : une grande sphère vue de l'intérieur (BackSide), texturée
+// avec des rais de lumière rayonnants + une grille "plafond" — remplace le
+// noir vide du premier jet, qui manquait le principal repère d'ambiance de
+// l'image de référence.
+function buildSky() {
+  const size = 1024;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const g = c.getContext("2d");
+  g.fillStyle = "#03040a";
+  g.fillRect(0, 0, size, size);
+  const cx = size * 0.5, cy = size * 0.6;
+  const rayColors = ["rgba(56,189,248,0.16)", "rgba(167,139,250,0.14)", "rgba(244,114,182,0.12)"];
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    g.strokeStyle = rayColors[i % rayColors.length];
+    g.lineWidth = 3 + Math.random() * 7;
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(a) * size, cy + Math.sin(a) * size);
+    g.stroke();
+  }
+  g.strokeStyle = "rgba(125,211,252,0.22)";
+  g.lineWidth = 1.5;
+  for (let y = 0; y < size * 0.4; y += size / 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(size, y); g.stroke(); }
+  for (let x = 0; x < size; x += size / 24) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, size * 0.4); g.stroke(); }
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(230, 24, 16), mat);
+  scene.add(sky);
+}
+
+function makeRoadTexture() {
   const size = 512;
   const c = document.createElement("canvas");
   c.width = size; c.height = size;
   const g = c.getContext("2d");
-  g.fillStyle = "#050b18";
+  g.fillStyle = "#050510";
   g.fillRect(0, 0, size, size);
-  g.strokeStyle = "rgba(125,211,252,0.35)";
-  g.lineWidth = 2;
-  const step = size / 8;
+  g.strokeStyle = "rgba(125,180,255,0.22)";
+  g.lineWidth = 1.5;
+  const step = size / 10;
   for (let x = step; x < size; x += step) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, size); g.stroke(); }
-  g.strokeStyle = "rgba(56,189,248,0.9)";
-  g.lineWidth = 4;
-  g.shadowColor = "#38bdf8";
-  g.shadowBlur = 10;
-  g.beginPath(); g.moveTo(0, size - 2); g.lineTo(size, size - 2); g.stroke();
+  for (let y = step; y < size; y += step) { g.beginPath(); g.moveTo(0, y); g.lineTo(size, y); g.stroke(); }
+  g.strokeStyle = "rgba(167,139,250,0.5)";
+  g.lineWidth = 3;
+  g.beginPath(); g.moveTo(size / 2, 0); g.lineTo(size / 2, size); g.stroke();
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(6, 60);
+  tex.repeat.set(5, 70);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
 function buildRoad() {
-  roadTexture = makeGridTexture();
-  const geo = new THREE.PlaneGeometry(14, 400, 1, 1);
+  roadTexture = makeRoadTexture();
+  const geo = new THREE.PlaneGeometry(ROAD_HALF_W * 2, 400, 1, 1);
   const mat = new THREE.MeshBasicMaterial({ map: roadTexture, fog: true });
   const road = new THREE.Mesh(geo, mat);
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0, -190);
   scene.add(road);
 
-  const centerGeo = new THREE.PlaneGeometry(0.4, 400);
-  const centerMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.55, fog: true });
-  const centerLine = new THREE.Mesh(centerGeo, centerMat);
-  centerLine.rotation.x = -Math.PI / 2;
-  centerLine.position.set(0, 0.01, -190);
-  scene.add(centerLine);
+  // Glissières lumineuses sur les deux bords — bien plus marquantes qu'une
+  // simple texture, et c'est elles (avec le bloom) qui donnent la ligne néon
+  // continue vue sur l'image de référence.
+  for (const side of [-1, 1]) {
+    const railGeo = new THREE.PlaneGeometry(0.35, 400);
+    const railMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.95, fog: true });
+    const rail = new THREE.Mesh(railGeo, railMat);
+    rail.rotation.x = -Math.PI / 2;
+    rail.position.set(side * ROAD_HALF_W, 0.02, -190);
+    scene.add(rail);
+  }
+}
+
+// Un amas de cristaux facettés (pas un simple cône fil-de-fer) : remplissage
+// dégradé (pointe claire → base saturée, via des couleurs par sommet), arêtes
+// vives par-dessus, et des nervures pointe→base pour le détail "lignes
+// verticales" du grand pic de l'image de référence.
+function makeCrystalCluster(topColorHex, bottomColorHex) {
+  const group = new THREE.Group();
+  const pieces = 2 + Math.floor(Math.random() * 3);
+  const top = new THREE.Color(topColorHex), bottom = new THREE.Color(bottomColorHex);
+  for (let i = 0; i < pieces; i++) {
+    const h = 3 + Math.random() * 9;
+    const r = 1 + Math.random() * 2.4;
+    const seg = 5 + Math.floor(Math.random() * 3);
+    const geo = new THREE.ConeGeometry(r, h, seg);
+
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    for (let v = 0; v < pos.count; v++) {
+      const t = (pos.getY(v) + h / 2) / h;
+      const c = bottom.clone().lerp(top, t);
+      colors[v * 3] = c.r; colors[v * 3 + 1] = c.g; colors[v * 3 + 2] = c.b;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.18, fog: true, side: THREE.FrontSide,
+    }));
+
+    const edges = new THREE.EdgesGeometry(geo);
+    const edgeMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: bottomColorHex, transparent: true, opacity: 0.95, fog: true,
+    }));
+
+    const ribPositions = [];
+    for (let s = 0; s < seg; s++) {
+      const a = (s / seg) * Math.PI * 2;
+      ribPositions.push(0, h / 2, 0, Math.cos(a) * r, -h / 2, Math.sin(a) * r);
+    }
+    const ribGeo = new THREE.BufferGeometry();
+    ribGeo.setAttribute("position", new THREE.Float32BufferAttribute(ribPositions, 3));
+    const ribs = new THREE.LineSegments(ribGeo, new THREE.LineBasicMaterial({
+      color: topColorHex, transparent: true, opacity: 0.55, fog: true,
+    }));
+
+    const px = (Math.random() - 0.5) * r * 1.6, pz = (Math.random() - 0.5) * r * 1.6;
+    const rot = Math.random() * Math.PI;
+    for (const obj of [mesh, edgeMesh, ribs]) {
+      obj.position.set(px, h / 2 - 0.3, pz);
+      obj.rotation.y = rot;
+      group.add(obj);
+    }
+  }
+  return group;
 }
 
 function buildMountains() {
-  const colors = [0x38bdf8, 0xa78bfa, 0xf472b6];
+  // Couleurs de pointe volontairement moins pâles que la première version :
+  // un blanc/cyan quasi pur sous bloom devient un aplat blanc sans relief —
+  // en restant sur des teintes plus saturées, le dégradé pointe→base reste
+  // lisible même une fois la passe de bloom appliquée.
+  const palettes = [
+    [0x7dd3fc, 0x1d5fae],
+    [0xc4b5fd, 0x6d28d9],
+    [0xf9a8d4, 0xbe185d],
+  ];
   for (const side of [-1, 1]) {
-    for (let i = 0; i < 14; i++) {
-      const h = 4 + Math.random() * 10;
-      const r = 1.5 + Math.random() * 3;
-      const geo = new THREE.ConeGeometry(r, h, 4);
-      const edges = new THREE.EdgesGeometry(geo);
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55, fog: true });
-      const mesh = new THREE.LineSegments(edges, mat);
-      const x = side * (7 + Math.random() * 22);
-      const z = -10 - Math.random() * 150;
-      mesh.position.set(x, h / 2 - 0.3, z);
-      mesh.rotation.y = Math.random() * Math.PI;
-      scene.add(mesh);
+    for (let i = 0; i < 9; i++) {
+      const [t, b] = palettes[Math.floor(Math.random() * palettes.length)];
+      const cluster = makeCrystalCluster(t, b);
+      const near = i < 2; // quelques amas plus gros, en retrait sur les côtés, comme au premier plan de l'image
+      cluster.scale.setScalar(near ? 1.1 + Math.random() * 0.5 : 0.7 + Math.random() * 1.1);
+      const x = side * (near ? 12 + Math.random() * 5 : 10 + Math.random() * 24);
+      const z = near ? -14 - Math.random() * 14 : -16 - Math.random() * 150;
+      cluster.position.set(x, 0, z);
+      scene.add(cluster);
     }
   }
 }
@@ -385,27 +502,48 @@ function buildSun() {
   c.width = size; c.height = size;
   const g = c.getContext("2d");
   const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  grad.addColorStop(0, "#e0f2fe");
-  grad.addColorStop(0.5, "#7dd3fc");
-  grad.addColorStop(1, "rgba(125,211,252,0)");
+  grad.addColorStop(0, "#f0fbff");
+  grad.addColorStop(0.4, "#7dd3fc");
+  grad.addColorStop(0.75, "#38bdf8");
+  grad.addColorStop(1, "rgba(56,189,248,0)");
   g.fillStyle = grad;
   g.beginPath(); g.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); g.fill();
-  g.fillStyle = "rgba(3,4,10,0.9)";
-  for (let y = size * 0.42; y < size; y += 16) g.fillRect(0, y, size, 8);
+  g.fillStyle = "#03040a";
+  let y = size * 0.38, bandH = 5, gap = 9;
+  while (y < size) { g.fillRect(0, y, size, bandH); bandH = Math.min(22, bandH + 1.6); y += bandH + gap; gap = Math.max(3, gap - 0.6); }
   const tex = new THREE.CanvasTexture(c);
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, fog: false });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(34, 34, 1);
-  sprite.position.set(0, 12, -150);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, fog: false, depthWrite: false }));
+  sprite.scale.set(38, 38, 1);
+  sprite.position.set(0, 13, -160);
   scene.add(sprite);
 }
 
+// Texture de grille blanche partagée, teintée par matériau (`color`) pour
+// chaque dalle — évite de refabriquer une texture par couleur.
+function getTileTexture() {
+  if (tileTexture) return tileTexture;
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const g = c.getContext("2d");
+  g.strokeStyle = "#ffffff";
+  g.lineWidth = 8;
+  g.strokeRect(6, 6, size - 12, size - 12);
+  g.lineWidth = 2;
+  g.globalAlpha = 0.7;
+  const step = size / 6;
+  for (let x = step; x < size; x += step) { g.beginPath(); g.moveTo(x, 6); g.lineTo(x, size - 6); g.stroke(); }
+  for (let y = step; y < size; y += step) { g.beginPath(); g.moveTo(6, y); g.lineTo(size - 6, y); g.stroke(); }
+  tileTexture = new THREE.CanvasTexture(c);
+  return tileTexture;
+}
+
 function spawnTileMesh(t) {
-  const geo = new THREE.PlaneGeometry(1.1, 1.1);
-  const mat = new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide, fog: true });
+  const geo = new THREE.PlaneGeometry(1.3, 1.3);
+  const mat = new THREE.MeshBasicMaterial({ map: getTileTexture(), color: t.color, transparent: true, opacity: 0.95, side: THREE.DoubleSide, fog: true });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(t.lane * 3.2, 0.03, t.z);
+  mesh.position.set(t.lane * 3.2, 0.04, t.z);
   scene.add(mesh);
   t.mesh = mesh;
 }
@@ -419,7 +557,7 @@ function removeTileMesh(t) {
 }
 
 function updateScene(dt) {
-  if (!renderer) return;
+  if (!composer) return;
   if (roadTexture) roadTexture.offset.y = (roadTexture.offset.y + speed * dt * 0.05) % 1;
 
   const targetX = lateralOffset * 3.2;
@@ -430,7 +568,7 @@ function updateScene(dt) {
   camera.rotation.z += (targetRoll - camera.rotation.z) * Math.min(1, dt * 6);
   camera.position.y = 1.5 + Math.sin(sessionT * 3) * 0.01 * Math.min(1, speed / 10);
 
-  renderer.render(scene, camera);
+  composer.render();
 }
 
 function frame(prevT) {
