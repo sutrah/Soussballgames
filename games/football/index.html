@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foot — Tirs au but — Soussballgames</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8E%AE</text></svg>" />
+<link rel="stylesheet" href="../../assets/css/main.css" />
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-header">
+      <a class="back" href="../../index.html">← Retour</a>
+      <div class="status-line"><span class="status-dot" id="camDot"></span><span id="camLabel">Caméra inactive</span></div>
+      <div class="score">⚽ Vous <span id="scorePlayer">0</span> — IA <span id="scoreAi">0</span></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="960" height="600"></canvas>
+
+      <div class="cam-preview" id="camPreview">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="skeleton"></canvas>
+      </div>
+
+      <div class="overlay" id="overlayStart">
+        <h2>Foot — Tirs au but</h2>
+        <p>
+          Un duel en 5 tours (puis tirs au but supplémentaires en cas d'égalité) :
+          à chaque tour, vous tirez sur le but de l'IA, puis l'IA tire sur le vôtre.
+          Reculez-vous pour que hanches et genoux soient bien visibles.
+        </p>
+        <div class="hint-row">
+          <span class="hint-chip">↔️ Déplacez vos hanches pour viser une zone</span>
+          <span class="hint-chip">🦵 Levez bien le genou pour tirer</span>
+          <span class="hint-chip">🧤 En défense, rejoignez la zone du tir pour arrêter</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnStart">Activer la caméra & jouer</button>
+        </div>
+      </div>
+
+      <!-- Bannière de phase (aligner, tirer, plonger, résultat) -->
+      <div id="phaseBanner" style="display:none; position:absolute; top:14px; left:0; right:0; text-align:center; z-index:6;">
+        <div style="display:inline-block; padding:8px 18px; border-radius:999px; background:rgba(6,7,13,0.6); border:1px solid var(--glass-border); backdrop-filter: blur(8px); min-width:260px;">
+          <b id="phaseLabel">…</b>
+        </div>
+        <div class="level-pill" id="roundPill" style="justify-content:center; margin-top:8px;"></div>
+      </div>
+
+      <div class="overlay" id="overlayOver" style="display:none">
+        <h2 id="overTitle">Match terminé !</h2>
+        <p id="overScore"></p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRetry">Rejouer</button>
+          <a class="btn btn-ghost" href="../../index.html">Menu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="football.js"></script>
+</body>
+</html>
